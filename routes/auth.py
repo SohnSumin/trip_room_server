@@ -1,9 +1,16 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, make_response
 from werkzeug.security import generate_password_hash, check_password_hash
 from bson import ObjectId
 from db import users
 
 auth_bp = Blueprint("auth", __name__)
+
+def json_utf8(data, status=200):
+    """UTF-8 인코딩이 보장된 jsonify 헬퍼 함수"""
+    response = make_response(jsonify(data), status)
+    response.headers["Content-Type"] = "application/json; charset=utf-8"
+    return response
+
 
 # 회원가입
 @auth_bp.route("/signup", methods=["POST"])
