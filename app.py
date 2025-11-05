@@ -3,6 +3,15 @@ from flask_cors import CORS
 from routes.auth import auth_bp
 from routes.rooms import rooms_bp
 from routes.schedules import schedules_bp
+from dotenv import load_dotenv
+
+import os
+import os
+
+load_dotenv()  # .env 파일이 있을 경우 자동 로드
+
+GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY")
+
 
 app = Flask(__name__)
 CORS(app)

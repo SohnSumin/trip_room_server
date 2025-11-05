@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify, make_response
 from bson import ObjectId
 from datetime import datetime, timezone
+from routes.schedules import delete_schedule
 from db import db, users
 
 rooms_bp = Blueprint("rooms", __name__)
@@ -47,6 +48,7 @@ def create_room():
 @rooms_bp.route("/rooms/<room_id>", methods=["DELETE"])
 def delete_room(room_id):
     result = db.rooms.delete_one({"_id": ObjectId(room_id)})
+    delete_schedule(room_id)  # 방 삭제 시 일정도 함께 삭제
     if result.deleted_count == 0:
         return jsonify({"error": "Room not found"}), 404
     return jsonify({"status": "deleted"}), 200

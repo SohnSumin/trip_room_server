@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify, make_response
 from bson import ObjectId
-from db import db  # MongoDB 연결
+from util.google_utils import get_place_info
+from db import db  # MongoDB 연 결
 import traceback
 
 schedules_bp = Blueprint("schedules", __name__)
@@ -57,7 +58,6 @@ def get_schedule(room_id):
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
-
 # -----------------------
 # ✅ 전체 일정 업데이트 (PUT)
 # -----------------------
@@ -83,49 +83,73 @@ def update_full_schedule(room_id):
 # -----------------------
 # ✅ 입력값 검증 함수
 # -----------------------
-def validate_schedule_item(item, total_days=None):
+def validate_schedule_item(item):
     required_fields = ["title", "place", "startHour", "startMinute", "endHour", "endMinute", "color"]
     for f in required_fields:
         if f not in item:
             return f"Missing field: {f}"
 
-    # 시간 범위 검증
     if not (0 <= item["startHour"] <= 23 and 0 <= item["endHour"] <= 23):
         return "Hour must be between 0 and 23"
     if not (0 <= item["startMinute"] <= 59 and 0 <= item["endMinute"] <= 59):
         return "Minute must be between 0 and 59"
 
-    # 시작 시간이 종료 시간보다 늦으면 오류
     start_total = item["startHour"] * 60 + item["startMinute"]
     end_total = item["endHour"] * 60 + item["endMinute"]
     if end_total <= start_total:
         return "End time must be after start time"
 
-    return None  # ✅ 유효함
+    return None
 
 # -----------------------
 # ✅ 특정 날짜 일정 추가 (POST)
 # -----------------------
+# ✅ 일정 추가 시 장소 정보 Google Maps에서 가져오기
 @schedules_bp.route("/rooms/<room_id>/schedule/day/<day>", methods=["POST"])
 def add_schedule_item(room_id, day):
     try:
         data = request.get_json()
         item = data.get("item")
 
+        if not item:
+            return jsonify({"error": "Missing 'item'"}), 400
+
+        # 입력값 검증
         error = validate_schedule_item(item)
         if error:
             return jsonify({"error": error}), 400
 
+        # Google Maps에서 장소 정보 가져오기
+        place_name = item.get("place")
+        place_info = get_place_info(place_name)
+        if not place_info:
+            return jsonify({"error": f"'{place_name}' 장소를 찾을 수 없습니다."}), 404
+
+        # placeInfo에서 name을 꺼내 최상위 place로, 내부에서는 제거
+        item["place"] = place_info.get("name", place_name)
+        filtered_place_info = {
+            k: v for k, v in place_info.items()
+            if k != "name"
+        }
+        item["placeInfo"] = filtered_place_info
+
+        # DB에 저장
         db.schedules.update_one(
             {"room_id": ObjectId(room_id)},
             {"$push": {f"schedule.{day}": item}},
             upsert=True
         )
-        return jsonify({"message": f"Item added to day {day}"}), 200
+
+        return jsonify({
+            "message": f"✅ '{item['place']}' 일정이 Day {day}에 추가되었습니다.",
+            "place": item["place"],
+            "placeInfo": filtered_place_info
+        }), 200
 
     except Exception as e:
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
+
 
 
 # -----------------------
@@ -170,8 +194,9 @@ def delete_schedule(room_id):
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
+
 # -----------------------
-# ✅ 특정 일정 수정 (PUT)
+# ✅ 일정 수정
 # -----------------------
 @schedules_bp.route("/rooms/<room_id>/schedule/day/<day>/<int:index>", methods=["PUT"])
 def update_schedule_item(room_id, day, index):
@@ -196,15 +221,35 @@ def update_schedule_item(room_id, day, index):
         if index < 0 or index >= len(day_list):
             return jsonify({"error": "Invalid index"}), 400
 
-        # 수정
+        old_item = day_list[index]
+        old_place = old_item.get("place")
+        new_place = new_item.get("place")
+
+        # ✅ 장소가 바뀐 경우
+        if new_place and new_place != old_place:
+            from util.google_utils import get_place_info
+            place_info = get_place_info(new_place)
+            if not place_info:
+                return jsonify({"error": f"'{new_place}' 장소를 찾을 수 없습니다."}), 404
+
+            new_item["place_info"] = place_info
+            new_item["place"] = place_info["name"]
+        else:
+            new_item["place_info"] = old_item.get("place_info", {})
+
+        # ✅ 수정 반영
         day_list[index] = new_item
         db.schedules.update_one(
             {"room_id": ObjectId(room_id)},
             {"$set": {f"schedule.{day}": day_list}}
         )
 
-        return jsonify({"message": f"Item {index} on day {day} updated successfully"}), 200
+        return jsonify({
+            "message": f"✅ Item {index} on day {day} updated successfully",
+            "place_info": new_item.get("place_info")
+        }), 200
 
     except Exception as e:
+        import traceback
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500

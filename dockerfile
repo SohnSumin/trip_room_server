@@ -1,4 +1,7 @@
 FROM python:3.11-slim
+ 
+ENV GOOGLE_MAP_API_KEY="AIzaSyAH1Nvo3v3HAfsQlWQDEXDGtEkthbvC53s"
+ENV MONGO_URI="mongodb+srv://somsumun_db_user:c16Mv5bXC8JxQpQ4@cluster0.3liugev.mongodb.net/trip_room_db?retryWrites=true&w=majority"
 
 ENV LANG=C.UTF-8
 ENV LC_ALL=C.UTF-8
@@ -14,4 +17,3 @@ COPY . .
 # Flask만 실행 (test.py는 따로 관리 권장)
 CMD ["python", "app.py"]
 
-ENV MONGO_URI="mongodb+srv://somsumun_db_user:c16Mv5bXC8JxQpQ4@cluster0.3liugev.mongodb.net/trip_room_db?retryWrites=true&w=majority"
