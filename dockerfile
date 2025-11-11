@@ -1,6 +1,7 @@
 FROM python:3.11-slim
  
-ENV GOOGLE_MAP_API_KEY="AIzaSyAH1Nvo3v3HAfsQlWQDEXDGtEkthbvC53s"
+ENV GOOGLE_MAP_API_KEY=AIzaSyAH1Nvo3v3HAfsQlWQDEXDGtEkthbvC53s
+ENV GEMINI_API_KEY=AIzaSyDsV6kB0aRjwoDUNbobOIiVhbp2EEZMJuM
 ENV MONGO_URI="mongodb+srv://somsumun_db_user:c16Mv5bXC8JxQpQ4@cluster0.3liugev.mongodb.net/trip_room_db?retryWrites=true&w=majority"
 
 ENV LANG=C.UTF-8
