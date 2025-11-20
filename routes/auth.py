@@ -53,9 +53,10 @@ def login():
     if not user or not check_password_hash(user["password"], password):
         return jsonify({"error": "Invalid credentials"}), 401
 
+
     return jsonify({
         "status": "ok",
-        "userId": str(user["_id"]),   # ✅ 추가
+        "userId": str(user["_id"]),  
         "id": user["id"],
         "nickname": user["nickname"]
     }), 200

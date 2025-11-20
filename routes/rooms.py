@@ -1,48 +1,68 @@
-from flask import Blueprint, request, jsonify, make_response
+from flask import Blueprint, request, jsonify, make_response, send_file
 from bson import ObjectId
 from datetime import datetime, timezone
 from routes.schedules import delete_schedule
-from db import db, users
+from db import db, users, fs
+from gridfs.errors import NoFile
+from werkzeug.datastructures import FileStorage
 
 rooms_bp = Blueprint("rooms", __name__)
-
-def json_utf8(data, status=200):
-    """UTF-8 인코딩이 보장된 jsonify 헬퍼 함수"""
-    response = make_response(jsonify(data), status)
-    response.headers["Content-Type"] = "application/json; charset=utf-8"
-    return response
-
 
 # ✅ 방 생성
 @rooms_bp.route("/rooms", methods=["POST"])
 def create_room():
-    data = request.get_json()
-    required = ["title", "country", "startDate", "endDate", "ownerId"]
+    data = request.form
+    required = ["title", "country", "startDate", "endDate", "creatorId"]
     if not all(k in data and data[k] for k in required):
         return jsonify({"error": "Missing fields"}), 400
 
     try:
-        owner_oid = ObjectId(data["ownerId"])
+        owner_oid = ObjectId(data["creatorId"])
     except:
-        return jsonify({"error": "Invalid ownerId"}), 400
+        return jsonify({"error": "Invalid creatorId"}), 400
+
+    image_id = None
+    if 'image' in request.files:
+        image_file: FileStorage = request.files['image']
+        # GridFS에 이미지 저장하고 파일 ID를 얻음
+        image_id = fs.put(image_file, filename=image_file.filename, content_type=image_file.content_type)
 
     room = {
         "title": data["title"],
         "country": data["country"],
         "startDate": data["startDate"],
         "endDate": data["endDate"],
-        "ownerId": owner_oid,
+        "ownerId": owner_oid, # 방장은 ownerId로 저장
         "members": [owner_oid],
         "pendingInvites": [],
-        "createdAt": datetime.now(timezone.utc)
+        "createdAt": datetime.now(timezone.utc),
+        "imageId": image_id # 이미지 파일 ID 저장
     }
     
     result = db.rooms.insert_one(room)
     room["_id"] = str(result.inserted_id)
     room["ownerId"] = str(room["ownerId"])
+    if room["imageId"]:
+        room["imageId"] = str(room["imageId"])
     room["members"] = [str(m) for m in room["members"]]
     room["pendingInvites"] = [str(p) for p in room["pendingInvites"]]
     return jsonify(room), 201
+
+# ✅ 이미지 파일 제공
+@rooms_bp.route("/images/<image_id>", methods=["GET"])
+def get_image(image_id):
+    try:
+        # GridFS에서 이미지 파일 가져오기
+        grid_out = fs.get(ObjectId(image_id))
+        # send_file을 사용하여 이미지 응답 생성
+        return send_file(
+            grid_out,
+            mimetype=grid_out.content_type
+        )
+    except NoFile:
+        return jsonify({"error": "Image not found"}), 404
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 # ✅ 방 삭제
 @rooms_bp.route("/rooms/<room_id>", methods=["DELETE"])
@@ -56,26 +76,42 @@ def delete_room(room_id):
 # ✅ 방 정보 업데이트
 @rooms_bp.route("/rooms/<room_id>", methods=["PUT"])
 def update_room(room_id):
-    data = request.get_json()
+    # multipart/form-data를 처리하기 위해 request.form 사용
+    if request.is_json:
+        data = request.get_json()
+    else: # multipart/form-data 또는 다른 형식
+        data = request.form
+
     update_data = {}
 
     for field in ["title", "country", "startDate", "endDate"]:
         if field in data and data[field]:
             update_data[field] = data[field]
 
-    if not update_data:
+    # 이미지 파일이 있는지 확인
+    if 'image' in request.files:
+        image_file: FileStorage = request.files['image']
+        
+        # 기존 이미지 삭제 (선택적)
+        room_to_update = db.rooms.find_one({"_id": ObjectId(room_id)})
+        if room_to_update and room_to_update.get("imageId"):
+            try:
+                fs.delete(room_to_update["imageId"])
+            except Exception as e:
+                print(f"Error deleting old image: {e}")
+
+        # 새 이미지 저장
+        image_id = fs.put(image_file, filename=image_file.filename, content_type=image_file.content_type)
+        update_data["imageId"] = image_id
+
+    if not update_data and 'image' not in request.files:
         return jsonify({"error": "Nothing to update"}), 400
 
     result = db.rooms.update_one({"_id": ObjectId(room_id)}, {"$set": update_data})
     if result.matched_count == 0:
         return jsonify({"error": "Room not found"}), 404
-
-    room = db.rooms.find_one({"_id": ObjectId(room_id)})
-    room["_id"] = str(room["_id"])
-    room["ownerId"] = str(room["ownerId"])
-    room["members"] = [str(m) for m in room["members"]]
-    room["pendingInvites"] = [str(p) for p in room.get("pendingInvites", [])]
-    return jsonify(room), 200
+    
+    return get_room_detail(room_id) # 업데이트된 방 정보를 반환
 
 # ✅ 내가 속한 방 보기
 @rooms_bp.route("/rooms/user/<user_id>", methods=["GET"])
@@ -91,6 +127,8 @@ def get_user_rooms(user_id):
         r["ownerId"] = str(r["ownerId"])
         r["members"] = [str(m) for m in r["members"]]
         r["pendingInvites"] = [str(p) for p in r.get("pendingInvites", [])]
+        if r.get("imageId"):
+            r["imageId"] = str(r["imageId"])
     return jsonify(rooms), 200
 
 # ✅ 초대된 방 보기
@@ -107,6 +145,8 @@ def get_invited_rooms(user_id):
         r["ownerId"] = str(r["ownerId"])
         r["members"] = [str(m) for m in r["members"]]
         r["pendingInvites"] = [str(p) for p in r.get("pendingInvites", [])]
+        if r.get("imageId"):
+            r["imageId"] = str(r["imageId"])
     return jsonify(rooms), 200
 
 # ✅ 방 초대
@@ -157,11 +197,18 @@ def get_room_detail(room_id):
     room = db.rooms.find_one({"_id": ObjectId(room_id)})
     if not room:
         return jsonify({"error": "Room not found"}), 404
+    
+    # 방장 로그인 ID 추가
+    owner_doc = users.find_one({"_id": room["ownerId"]})
+    if owner_doc:
+        room["ownerLoginId"] = owner_doc.get("id")
 
     room["_id"] = str(room["_id"])
     room["ownerId"] = str(room["ownerId"])
     room["members"] = [str(m) for m in room["members"]]
     room["pendingInvites"] = [str(p) for p in room.get("pendingInvites", [])]
+    if room.get("imageId"):
+        room["imageId"] = str(room["imageId"])
     return jsonify(room), 200
 
 # ✅ 초대 수락
@@ -267,6 +314,7 @@ def get_room_members(room_id):
         user = users.find_one({"_id": member_oid})
         if user:
             members_info.append({
+                "_id": str(user["_id"]),
                 "id": user["id"],
                 "nickname": user.get("nickname", "")
             })
