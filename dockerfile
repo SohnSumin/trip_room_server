@@ -11,6 +11,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-# Flask만 실행 (test.py는 따로 관리 권장)
 CMD ["python", "app.py"]
 

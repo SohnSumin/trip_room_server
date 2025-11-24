@@ -12,33 +12,6 @@ def json_utf8(data, status=200):
     response.headers["Content-Type"] = "application/json; charset=utf-8"
     return response
 
-# -----------------------
-# ✅ 일정 생성 (POST)
-# -----------------------
-@schedules_bp.route("/rooms/<room_id>/schedule", methods=["POST"])
-def create_schedule(room_id):
-    try:
-        data = request.get_json()
-        schedule_data = data.get("schedule")
-
-        if not schedule_data:
-            return jsonify({"error": "Schedule data required"}), 400
-
-        new_schedule = {
-            "room_id": ObjectId(room_id),
-            "schedule": schedule_data
-        }
-
-        result = db.schedules.insert_one(new_schedule)
-        return jsonify({
-            "message": "Schedule created successfully",
-            "schedule_id": str(result.inserted_id)
-        }), 201
-
-    except Exception as e:
-        traceback.print_exc()
-        return jsonify({"error": str(e)}), 500
-
 
 # -----------------------
 # ✅ 일정 조회 (GET)
@@ -53,28 +26,6 @@ def get_schedule(room_id):
         schedule["_id"] = str(schedule["_id"])
         schedule["room_id"] = str(schedule["room_id"])
         return jsonify(schedule), 200
-
-    except Exception as e:
-        traceback.print_exc()
-        return jsonify({"error": str(e)}), 500
-
-# -----------------------
-# ✅ 전체 일정 업데이트 (PUT)
-# -----------------------
-@schedules_bp.route("/rooms/<room_id>/schedule", methods=["PUT"])
-def update_full_schedule(room_id):
-    try:
-        data = request.get_json()
-        new_schedule = data.get("schedule")
-        if not new_schedule:
-            return jsonify({"error": "Missing 'schedule' data"}), 400
-
-        result = db.schedules.update_one(
-            {"room_id": ObjectId(room_id)},
-            {"$set": {"schedule": new_schedule}},
-            upsert=True
-        )
-        return jsonify({"message": "Schedule updated successfully"}), 200
 
     except Exception as e:
         traceback.print_exc()
