@@ -20,9 +20,6 @@ app.config['JSON_AS_ASCII'] = False
 app.config['JSONIFY_PRETTYPRINT_REGULAR'] = True
 app.config['JSON_SORT_KEYS'] = False
 
-
-print("DEBUG GEMINI_API_KEY:", os.getenv("GEMINI_API_KEY"))
-# Blueprint 등록
 app.register_blueprint(auth_bp, url_prefix="/api/auth")
 app.register_blueprint(rooms_bp, url_prefix="/api")
 app.register_blueprint(schedules_bp, url_prefix="/api")
