@@ -8,7 +8,7 @@ from werkzeug.datastructures import FileStorage
 
 rooms_bp = Blueprint("rooms", __name__)
 
-# ✅ 방 생성
+# 방 생성
 @rooms_bp.route("/rooms", methods=["POST"])
 def create_room():
     data = request.form
@@ -48,7 +48,7 @@ def create_room():
     room["pendingInvites"] = [str(p) for p in room["pendingInvites"]]
     return jsonify(room), 201
 
-# ✅ 이미지 파일 제공
+# 이미지 파일 제공
 @rooms_bp.route("/images/<image_id>", methods=["GET"])
 def get_image(image_id):
     try:
@@ -64,7 +64,7 @@ def get_image(image_id):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# ✅ 방 삭제
+# 방 삭제
 @rooms_bp.route("/rooms/<room_id>", methods=["DELETE"])
 def delete_room(room_id):
     result = db.rooms.delete_one({"_id": ObjectId(room_id)})
@@ -73,7 +73,7 @@ def delete_room(room_id):
         return jsonify({"error": "Room not found"}), 404
     return jsonify({"status": "deleted"}), 200
 
-# ✅ 방 정보 업데이트
+# 방 정보 업데이트
 @rooms_bp.route("/rooms/<room_id>", methods=["PUT"])
 def update_room(room_id):
     # multipart/form-data를 처리하기 위해 request.form 사용
@@ -113,7 +113,7 @@ def update_room(room_id):
     
     return get_room_detail(room_id) # 업데이트된 방 정보를 반환
 
-# ✅ 내가 속한 방 보기
+# 내가 속한 방 보기
 @rooms_bp.route("/rooms/user/<user_id>", methods=["GET"])
 def get_user_rooms(user_id):
     try:
@@ -131,7 +131,7 @@ def get_user_rooms(user_id):
             r["imageId"] = str(r["imageId"])
     return jsonify(rooms), 200
 
-# ✅ 초대된 방 보기
+# 초대된 방 보기
 @rooms_bp.route("/rooms/invited/<user_id>", methods=["GET"])
 def get_invited_rooms(user_id):
     try:
@@ -149,7 +149,7 @@ def get_invited_rooms(user_id):
             r["imageId"] = str(r["imageId"])
     return jsonify(rooms), 200
 
-# ✅ 방 초대
+# 방 초대
 @rooms_bp.route("/rooms/<room_id>/invite", methods=["POST"])
 def invite_member(room_id):
     data = request.get_json()
@@ -191,7 +191,7 @@ def invite_member(room_id):
     return jsonify({"status": "invite sent"}), 200
 
 
-# ✅ 방 상세 정보 보기
+# 방 상세 정보 보기
 @rooms_bp.route("/rooms/<room_id>", methods=["GET"])
 def get_room_detail(room_id):
     room = db.rooms.find_one({"_id": ObjectId(room_id)})
@@ -211,7 +211,7 @@ def get_room_detail(room_id):
         room["imageId"] = str(room["imageId"])
     return jsonify(room), 200
 
-# ✅ 초대 수락
+# 초대 수락
 @rooms_bp.route("/rooms/<room_id>/accept", methods=["POST"])
 def accept_invite(room_id):
     data = request.get_json()
@@ -235,7 +235,7 @@ def accept_invite(room_id):
     )
     return jsonify({"status": "joined"}), 200
 
-# ✅ 초대 거절
+# 초대 거절
 @rooms_bp.route("/rooms/<room_id>/decline", methods=["POST"])
 def decline_invite(room_id):
     data = request.get_json()
@@ -256,7 +256,7 @@ def decline_invite(room_id):
     )
     return jsonify({"status": "invite declined"}), 200
 
-# ✅ 방장 변경
+# 방장 변경
 @rooms_bp.route("/rooms/<room_id>/change_owner", methods=["POST"])
 def change_owner(room_id):
     data = request.get_json()
@@ -278,7 +278,7 @@ def change_owner(room_id):
     )
     return jsonify({"status": "owner changed"}), 200
 
-# ✅ 멤버 제거
+# 멤버 제거
 @rooms_bp.route("/rooms/<room_id>/remove_member", methods=["POST"])
 def remove_member(room_id):
     data = request.get_json()
@@ -302,7 +302,7 @@ def remove_member(room_id):
     )
     return jsonify({"status": "member removed"}), 200
 
-# ✅ 방 멤버 조회
+# 방 멤버 조회
 @rooms_bp.route("/rooms/<room_id>/members", methods=["GET"])
 def get_room_members(room_id):
     room = db.rooms.find_one({"_id": ObjectId(room_id)})

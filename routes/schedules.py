@@ -7,14 +7,14 @@ import traceback
 schedules_bp = Blueprint("schedules", __name__)
 
 def json_utf8(data, status=200):
-    """UTF-8 인코딩이 보장된 jsonify 헬퍼 함수"""
+    """UTF-8 인코딩을 보장하는 jsonify 헬퍼 함수"""
     response = make_response(jsonify(data), status)
     response.headers["Content-Type"] = "application/json; charset=utf-8"
     return response
 
 
 # -----------------------
-# ✅ 일정 조회 (GET)
+# 일정 조회 (GET)
 # -----------------------
 @schedules_bp.route("/rooms/<room_id>/schedule", methods=["GET"])
 def get_schedule(room_id):
@@ -32,7 +32,7 @@ def get_schedule(room_id):
         return jsonify({"error": str(e)}), 500
 
 # -----------------------
-# ✅ 입력값 검증 함수
+# 입력값 검증 함수
 # -----------------------
 def validate_schedule_item(item):
     required_fields = ["title", "place", "startHour", "startMinute", "endHour", "endMinute", "color"]
@@ -53,9 +53,9 @@ def validate_schedule_item(item):
     return None
 
 # -----------------------
-# ✅ 특정 날짜 일정 추가 (POST)
+# 특정 날짜 일정 추가 (POST)
 # -----------------------
-# ✅ 일정 추가 시 장소 정보 Google Maps에서 가져오기
+# 일정 추가 시 장소 정보를 Google Maps에서 가져옵니다.
 @schedules_bp.route("/rooms/<room_id>/schedule/day/<day>", methods=["POST"])
 def add_schedule_item(room_id, day):
     try:
@@ -92,7 +92,7 @@ def add_schedule_item(room_id, day):
         )
 
         return jsonify({
-            "message": f"✅ '{item['place']}' 일정이 Day {day}에 추가되었습니다.",
+            "message": f"'{item['place']}' 일정이 Day {day}에 추가되었습니다.",
             "place": item["place"],
             "placeInfo": filtered_place_info
         }), 200
@@ -104,7 +104,7 @@ def add_schedule_item(room_id, day):
 
 
 # -----------------------
-# ✅ 특정 날짜 일정 삭제 (DELETE)
+# 특정 날짜 일정 삭제 (DELETE)
 # -----------------------
 @schedules_bp.route("/rooms/<room_id>/schedule/day/<day>/<int:index>", methods=["DELETE"])
 def delete_schedule_item(room_id, day, index):
@@ -131,7 +131,7 @@ def delete_schedule_item(room_id, day, index):
 
 
 # -----------------------
-# ✅ 일정 삭제 (전체) (DELETE)
+# 일정 삭제 (전체) (DELETE)
 # -----------------------
 @schedules_bp.route("/rooms/<room_id>/schedule", methods=["DELETE"])
 def delete_schedule(room_id):
@@ -147,7 +147,7 @@ def delete_schedule(room_id):
 
 
 # -----------------------
-# ✅ 일정 수정
+# 일정 수정
 # -----------------------
 @schedules_bp.route("/rooms/<room_id>/schedule/day/<day>/<int:index>", methods=["PUT"])
 def update_schedule_item(room_id, day, index):
@@ -176,7 +176,7 @@ def update_schedule_item(room_id, day, index):
         old_place = old_item.get("place")
         new_place = new_item.get("place")
 
-        # ✅ 장소가 바뀐 경우
+        # 장소가 바뀐 경우
         if new_place and new_place != old_place:
             from util.google_utils import get_place_info
             place_info = get_place_info(new_place)
@@ -188,7 +188,7 @@ def update_schedule_item(room_id, day, index):
         else:
             new_item["place_info"] = old_item.get("place_info", {})
 
-        # ✅ 수정 반영
+        # 수정 반영
         day_list[index] = new_item
         db.schedules.update_one(
             {"room_id": ObjectId(room_id)},
@@ -196,7 +196,7 @@ def update_schedule_item(room_id, day, index):
         )
 
         return jsonify({
-            "message": f"✅ Item {index} on day {day} updated successfully",
+            "message": f"Item {index} on day {day} updated successfully",
             "place_info": new_item.get("place_info")
         }), 200
 

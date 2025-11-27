@@ -4,7 +4,7 @@ import requests
 def get_place_info(place_name, country=None, city=None):
     api_key = os.getenv("GOOGLE_MAPS_API_KEY")
     if not api_key:
-        raise ValueError("❌ GOOGLE_MAPS_API_KEY 환경변수가 설정되지 않았습니다.")
+        raise ValueError("GOOGLE_MAPS_API_KEY 환경변수가 설정되지 않았습니다.")
 
     # 지역 힌트 추가
     query = f"{place_name} {country or ''} {city or ''}".strip()

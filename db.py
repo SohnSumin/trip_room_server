@@ -4,7 +4,7 @@ import gridfs
 import os
 
 load_dotenv()
-MONGO_PW = os.getenv("MONGO_PW") # MONGO_URI가 없을 경우 기본 URI를 생성하는데 사용
+MONGO_PW = os.getenv("MONGO_PW")
 
 MONGO_URI = os.getenv(
     "MONGO_URI",
@@ -13,7 +13,7 @@ MONGO_URI = os.getenv(
 
 client = MongoClient(MONGO_URI)
 db = client["trip_room_db"]
-fs = gridfs.GridFS(db) # GridFS 인스턴스 생성
+fs = gridfs.GridFS(db)
 users = db["users"]
 rooms = db["rooms"]
 schedules = db["schedules"]

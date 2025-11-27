@@ -72,29 +72,29 @@ I will also provide the full schedule in JSON format. You MUST use the full JSON
         )
 
 
-        # 🧹 1️⃣ 코드 블록(```json ... ```) 제거
+        # 1. 코드 블록(```json ... ```) 제거
         ai_text_clean = re.sub(r"^```json|```$", "", ai_text.strip(), flags=re.MULTILINE).strip()
 
-        # 🧠 2️⃣ JSON 파싱 시도
+        # 2. JSON 파싱 시도
         try:
             feedback_data = json.loads(ai_text_clean)
         except Exception:
             feedback_data = {
                 "feedback_message": ai_text.strip(),
                 "changes": [],
-                "improved_schedule": None
+                "improved_schedule": None,
             }
 
         improved_schedule = feedback_data.get("improved_schedule")
 
-        # 🔢 3️⃣ 내부 로직에서는 int key로 사용
+        # 3. 내부 로직에서는 int key로 사용
         if isinstance(improved_schedule, dict):
             improved_schedule = {int(k): v for k, v in improved_schedule.items() if k.isdigit()}
 
-        # 💾 4️⃣ DB 저장용으로 string key 변환
+        # 4. DB 저장용으로 string key 변환
         mongo_schedule = {str(k): v for k, v in improved_schedule.items()} if improved_schedule else None
 
-        # ✅ 5️⃣ DB 업데이트 (MongoDB는 string key만 허용)
+        # 5. DB 업데이트 (MongoDB는 string key만 허용)
         if mongo_schedule:
             db.schedules.update_one(
                 {"room_id": ObjectId(room_id)},
