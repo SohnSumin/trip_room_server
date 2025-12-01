@@ -47,15 +47,15 @@ TripRoom Server
 
 ## 실행 방법
 
-# 프로젝트 디렉터리 이동
+### 프로젝트 디렉터리 이동
 
 - cd trip_room_server
 
-# Flask 실행
+### Flask 실행
 
 - flask run --host=0.0.0.0 --port=5000
 
-# 배포 (Railway)
+### 배포 (Railway)
 
 - Procfile: web: gunicorn --bind 0.0.0.0:8080 app:app
 - 공개 엔드포인트: https://triproomserver.up.railway.app
